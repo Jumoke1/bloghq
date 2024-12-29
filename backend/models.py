@@ -11,10 +11,11 @@ class User(Base):
     __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True)
-    first_name = Column(String)
-    last_name = Column(String)
+    firstname = Column(String)
+    lastname = Column(String)
     email = Column(String, unique=True, nullable=False)
     password = Column(String, nullable=False)
+   
 
     def set_password(self, password):
         "hashes the password using bcrypt  and store  itis password field "
@@ -27,8 +28,8 @@ class User(Base):
     def toJSON(self):
         return {
             'id': self.id,
-            'first_name': self.first_name,
-            'last_name': self.last_name,
+            'firstname': self.firstname,
+            'lastname': self.lastname,
             'email': self.email
         }
 

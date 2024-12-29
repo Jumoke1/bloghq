@@ -10,7 +10,7 @@ from uuid import uuid4
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["http://localhost:3000"])
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = int (os.getenv('JWT_ACCESS_TOKEN_EXPIRES'))
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] = int(os.getenv('JWT_REFRESH_TOKEN_EXPIRES'))
@@ -23,21 +23,32 @@ def index():
     users = db.query(User).all()
     return jsonify([user.toJSON() for user in users])
 
-@app.route('/signup', methods=['POST'])   
+@app.route('/signup', methods=['POST'])
 def signup():
     try:
         data = request.get_json()
-        if not data['first_name'] or not data['last_name'] or not data['email'] or not data['password']:
-            return jsonify({'error': 'Please provide all required fields!'})
-        user = User(first_name=data['first_name'], last_name=data['last_name'], email=data['email'])
+        if not data.get('firstname') or not data.get('lastname')or not data.get('email') or not data.get('password') or not data.get('confirm_password'):
+            return jsonify({'error': 'Please provide all required fields!'}), 400
+        
+        if data['password'] != data['confirm_password']:
+            return jsonify({'error': 'Passwords do not match!'}), 400
+
+        existing_user = db.query(User).filter_by(email=data['email']).first()
+        if existing_user:
+            return jsonify({'error': 'User already exists!'}), 409
+
+        
+
+        user = User(firstname=data['firstname'], lastname=data['lastname'], email=data['email'])
         user.set_password(data['password'])
         db.add(user)
         db.commit()
-        return jsonify(user.toJSON())
+        return jsonify(user.toJSON()), 201
     except Exception as e:
         print(e)
-        db.rollback()   
-        return jsonify({'error': 'User already exists!'})
+        db.rollback()
+        return jsonify({'error': 'An error occurred during registration!'}), 500
+
 
 @app.route('/login', methods=['POST'])
 def login_user():
@@ -49,8 +60,8 @@ def login_user():
         return jsonify({
             "access_token":access_token,
             "refresh_token":refresh_token
-            })
-    return jsonify({'error': 'Invalid credentials!'})
+            }),200
+    return jsonify({'error': 'Invalid credentials!'}),401
 
 @app.route('/createpost', methods=['POST'])
 @jwt_required()
